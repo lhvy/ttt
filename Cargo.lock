@@ -386,7 +386,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ultimate-ultimate-ttt"
+name = "ttt"
 version = "0.1.0"
 dependencies = [
  "anyhow",

@@ -5,7 +5,7 @@ use crossterm::{event, queue};
 use std::io;
 use std::io::Write;
 use std::net::TcpStream;
-use ultimate_ultimate_ttt::{Board, Event, Outcome, Player, Tile};
+use ttt::{Board, Event, Outcome, Player, Tile};
 
 fn main() -> anyhow::Result<()> {
     let stream = TcpStream::connect("0.0.0.0:9292")?;

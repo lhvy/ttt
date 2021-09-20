@@ -3,7 +3,7 @@ use std::io::BufReader;
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::time::Duration;
-use ultimate_ultimate_ttt::{Board, Event, Player, Tile};
+use ttt::{Board, Event, Player, Tile};
 
 fn main() -> anyhow::Result<()> {
     let mut board = Board {
