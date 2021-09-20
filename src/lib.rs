@@ -1,96 +1,41 @@
-use crossterm::cursor::{Hide, MoveTo, Show};
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, Clear, ClearType};
-use crossterm::{event, queue};
-use std::io::Write;
-use std::{fmt, io};
+#![warn(missing_copy_implementations)]
 
-fn main() -> io::Result<()> {
-    let mut std_out = io::stdout();
-    enable_raw_mode()?;
-    queue!(
-        std_out,
-        Hide,
-        EnableMouseCapture,
-        Clear(ClearType::All),
-        MoveTo(0, 0)
-    )?;
-    std_out.flush()?;
-    let mut board = Board {
-        tiles: [Tile::Empty; 9],
-    };
-    println!("{}\r", &board);
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
-    let mut player = Player::X;
-
-    loop {
-        match event::read()? {
-            event::Event::Mouse(event::MouseEvent {
-                kind: event::MouseEventKind::Up(event::MouseButton::Left),
-                column,
-                row,
-                ..
-            }) => {
-                let game_column = match column {
-                    0..=2 => 0,
-                    4..=6 => 1,
-                    8..=10 => 2,
-                    _ => continue,
-                };
-                let game_row = match row {
-                    0 => 0,
-                    2 => 1,
-                    4 => 2,
-                    _ => continue,
-                };
-
-                let i = game_row * 3 + game_column;
-
-                if board.tiles[i] == Tile::Empty {
-                    board.tiles[i] = match player {
-                        Player::X => Tile::X,
-                        Player::O => Tile::O,
-                    };
-                    player = player.next();
-                }
-
-                if let Some(outcome) = board.check_outcome() {
-                    queue!(std_out, Clear(ClearType::All), MoveTo(0, 0))?;
-                    println!("{}\r", &board);
-                    println!("{}\r", outcome);
-                    break;
-                }
-            }
-            event::Event::Key(event::KeyEvent {
-                code: event::KeyCode::Char('c'),
-                modifiers: event::KeyModifiers::CONTROL,
-            })
-            | event::Event::Key(event::KeyEvent {
-                code: event::KeyCode::Char('q'),
-                ..
-            }) => break,
-            _ => continue,
-        }
-        queue!(std_out, Clear(ClearType::All), MoveTo(0, 0))?;
-        println!("{}\r", &board);
-    }
-
-    queue!(std_out, DisableMouseCapture, Show)?;
-    disable_raw_mode()?;
-    std_out.flush()?;
-
-    Ok(())
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Event {
+    Play(usize),
+    Played { player: Player, pos: usize },
+    End(Outcome),
+    Turn,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum Tile {
-    Empty,
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Copy)]
+pub enum Player {
     X,
     O,
 }
 
-#[derive(Debug)]
-enum Outcome {
+impl Player {
+    #[must_use]
+    pub fn next(self) -> Self {
+        match self {
+            Self::X => Self::O,
+            Self::O => Self::X,
+        }
+    }
+
+    pub fn tile(self) -> Tile {
+        match self {
+            Self::X => Tile::X,
+            Self::O => Tile::O,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum Outcome {
     Tie,
     X,
     O,
@@ -106,26 +51,20 @@ impl fmt::Display for Outcome {
     }
 }
 
-enum Player {
+#[derive(Clone, Copy, PartialEq)]
+pub enum Tile {
+    Empty,
     X,
     O,
 }
 
-impl Player {
-    fn next(self) -> Self {
-        match self {
-            Self::X => Self::O,
-            Self::O => Self::X,
-        }
-    }
-}
-
-struct Board {
-    tiles: [Tile; 9],
+#[derive(Clone, Copy)]
+pub struct Board {
+    pub tiles: [Tile; 9],
 }
 
 impl Board {
-    fn check_outcome(&self) -> Option<Outcome> {
+    pub fn check_outcome(&self) -> Option<Outcome> {
         if let Some(value) = self.check_horiz(0) {
             return Some(value);
         }
